@@ -1,0 +1,71 @@
+--- # This is used to upgrade sanippbx
+
+- name: upgrade sanippbx Relax!! It take 20 min.
+  hosts: Test
+  user: root
+  become: yes
+  connection: ssh
+
+  tasks:
+  - name: Download sanippbx_4.0
+    get_url:
+      url: "http://update.sansoftwares.com/SANIPPBX_Setup/SanIPPBX_v.4.0.zip"
+      dest: "/var/www/html/"
+      mode: '0644'
+
+  - name: Rename Running Pbxadmin
+    shell: mv /var/www/html/pbxadmin/  /var/www/html/pbxadmin_1809/
+
+  - name: Unzip the package
+    unarchive:
+      src: "/var/www/html/SanIPPBX_v.4.0.zip"
+      dest: "/var/www/html"
+      remote_src: yes
+      mode: '0644'
+
+  - name: Move SanIPPBX contents to parent directory
+    shell: |
+      cd /var/www/html/SanIPPBX_v.4.0
+      mv pbxadmin  ../
+
+  - name: Rename autoload file
+    shell: mv /var/www/html/pbxadmin/application/config/autoload.php  /var/www/html/pbxadmin/application/config/autoload_old.php
+
+  - name: Rename autoload_overwrite file
+    shell: mv /var/www/html/pbxadmin/application/config/autoload_overwrite.php /var/www/html/pbxadmin/application/config/autoload.php
+
+  - name: Rename config file
+    shell: mv /var/www/html/pbxadmin/application/config/config.php  /var/www/html/pbxadmin/application/config/config_old.php
+
+  - name: Rename Config_overwrite file
+    shell: mv /var/www/html/pbxadmin/application/config/config_overwrite.php  /var/www/html/pbxadmin/application/config/config.php
+
+  - name: Ensure the /database.php file exists
+    stat:
+        path: /var/www/html/pbxadmin/application/config/database.php
+    register: php_file
+
+  - name: Debug file existence
+    debug:
+        msg: "File exists: {{ php_file.stat.exists }}"
+
+  - name: Replace hostname in PHP file
+    replace:
+        path: /var/www/html/pbxadmin/application/config/database.php
+        regexp: "'hostname' => 'localhost'"
+        replace: "'hostname' => '127.0.0.1'"
+    when: php_file.stat.exists
+
+  - name: Replace username in PHP file
+    replace:
+        path: /var/www/html/pbxadmin/application/config/database.php
+        regexp: "'username' => 'sandbuser'"
+        replace: "'username' => 'root'"
+    when: php_file.stat.exists
+
+  - name: Replace password in PHP file
+    replace:
+        path: /var/www/html/pbxadmin/application/config/database.php
+        regexp: "'password' => 'sandbpass'"
+        replace: "'password' => '*1Sansoftwares#'"
+    when: php_file.stat.exists
