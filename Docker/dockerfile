@@ -1,0 +1,71 @@
+FROM rockylinux:9
+
+# Install repos
+RUN dnf -y install epel-release && \
+    dnf -y install https://rpms.remirepo.net/enterprise/remi-release-9.rpm
+
+# Enable PHP 8.3
+RUN dnf module reset php -y && \
+    dnf module enable php:remi-8.3 -y
+
+# Install Apache + PHP
+RUN dnf -y install \
+    httpd \
+    php \
+    php-cli \
+    php-common \
+    php-mysqlnd \
+    php-gd \
+    php-mbstring \
+    php-xml \
+    php-curl \
+    php-zip \
+    php-opcache \
+    php-json \
+    mod_php \
+    iproute \
+    net-tools \
+    && dnf clean all
+
+# Set ServerName
+RUN echo "ServerName localhost" >> /etc/httpd/conf/httpd.conf
+
+# Change port to 8083
+RUN sed -i 's/Listen 80/Listen 8083/' /etc/httpd/conf/httpd.conf
+
+# 🔥 FIX 1: Change DocumentRoot (IMPORTANT)
+RUN sed -i 's|DocumentRoot "/var/www/html"|DocumentRoot "/var/www/html/admincrm"|' /etc/httpd/conf/httpd.conf
+
+# 🔥 FIX 2: Comment duplicate Directory block
+RUN sed -i '/<Directory "\/var\/www\/html\/admincrm">/,/<\/Directory>/ s/^/#/' /etc/httpd/conf/httpd.conf
+
+# 🔥 FIX 3: Add CLEAN Directory block (single source of truth)
+RUN echo '<Directory "/var/www/html/admincrm">' >> /etc/httpd/conf/httpd.conf && \
+    echo '    Options Indexes FollowSymLinks' >> /etc/httpd/conf/httpd.conf && \
+    echo '    AllowOverride All' >> /etc/httpd/conf/httpd.conf && \
+    echo '    Require all granted' >> /etc/httpd/conf/httpd.conf && \
+    echo '</Directory>' >> /etc/httpd/conf/httpd.conf
+
+# Enable prefork MPM (required for mod_php)
+RUN sed -i 's/^LoadModule mpm_event_module/#LoadModule mpm_event_module/' /etc/httpd/conf.modules.d/00-mpm.conf && \
+    sed -i 's/^#LoadModule mpm_prefork_module/LoadModule mpm_prefork_module/' /etc/httpd/conf.modules.d/00-mpm.conf
+
+# Copy CRM code
+COPY admincrm/ /var/www/html/admincrm/
+
+# Permissions
+RUN chown -R apache:apache /var/www/html && \
+    chmod -R 755 /var/www/html
+
+# DirectoryIndex
+RUN echo "DirectoryIndex index.php index.html" >> /etc/httpd/conf/httpd.conf
+
+# Logs → Docker logs
+RUN sed -i 's|ErrorLog "logs/error_log"|ErrorLog /proc/self/fd/2|' /etc/httpd/conf/httpd.conf && \
+    sed -i 's|CustomLog "logs/access_log" combined|CustomLog /proc/self/fd/1 combined|' /etc/httpd/conf/httpd.conf
+
+# Expose port
+EXPOSE 8083
+
+# Start Apache
+CMD ["/usr/sbin/httpd", "-D", "FOREGROUND"]
