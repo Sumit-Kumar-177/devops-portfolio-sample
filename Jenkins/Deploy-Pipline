@@ -1,0 +1,147 @@
+pipeline {
+    agent any
+
+    environment {
+        DEPLOY_SERVER = "15xxx251"
+        DEPLOY_PORT   = "4xx18"
+        SSH_CRED_ID   = "ssx6"
+
+        REGISTRY = "sansoftwarexxrdo"
+        WORKDIR  = "/var/lib/jenkins/sanordo"
+
+        EMAIL        = "sumit.kumar@sansoftwares.com,vinoxxxftwares.in,shweta.rxares.in,Deepak.xxwares.com"
+        TEMPLATE_DIR = "/var/lib/jenkins/email-templates"
+    }
+
+    parameters {
+        string(name: 'VERSION', defaultValue: '', description: 'Example: v6')
+
+        booleanParam(name: 'ADMIN_CHANGED',  defaultValue: false)
+        booleanParam(name: 'CLIENT_CHANGED', defaultValue: false)
+        booleanParam(name: 'NODE_CHANGED',   defaultValue: false)
+        booleanParam(name: 'SERVER_CHANGED', defaultValue: false)
+    }
+
+    stages {
+
+        /* =====================================================
+           MANAGER APPROVAL
+        ===================================================== */
+        stage('Manager Approval') {
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    input message: "Approve LIVE deployment for Sanordo (${params.VERSION})?"
+                }
+            }
+        }
+
+        /* =====================================================
+           DEPLOY SERVICES
+        ===================================================== */
+        stage('Deploy Services') {
+            steps {
+                script {
+                    sshagent([SSH_CRED_ID]) {
+
+                        def services = [
+                            [svc: "sanordo-admin",  img: "adminserver",   flag: params.ADMIN_CHANGED],
+                            [svc: "sanordo-client", img: "clientserver",  flag: params.CLIENT_CHANGED],
+                            [svc: "sanordo-node",   img: "nodeserver",    flag: params.NODE_CHANGED],
+                            [svc: "sanordo-server", img: "sanordoserver", flag: params.SERVER_CHANGED]
+                        ]
+
+                        services.each { s ->
+
+                            if (!s.flag) {
+                                echo "⏭ Skipping ${s.svc} (no change)"
+                                return
+                            }
+
+                            def image = "${REGISTRY}:${s.img}_${params.VERSION}"
+
+                            sh """
+ssh -p ${DEPLOY_PORT} root@${DEPLOY_SERVER} <<'EOF'
+set -e
+cd ${WORKDIR}
+
+echo "=========================================="
+echo " Deploying ${s.svc}"
+echo " Image: ${image}"
+echo "=========================================="
+
+# ---- PULL NEW IMAGE FIRST ----
+echo " Pulling new image..."
+docker pull ${image}
+
+echo " Image pulled successfully"
+
+# ---- STOP SERVICE SAFELY ----
+docker compose stop ${s.svc} || true
+
+# ---- DELETE CONTAINER (GUARANTEED) ----
+docker rm -f ${s.svc} || true
+
+# ---- CREATE TEMP OVERRIDE FILE ----
+cat > docker-compose.override.yml <<EOL
+services:
+  ${s.svc}:
+    image: ${image}
+EOL
+
+# ---- FORCE RECREATE CONTAINER ----
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.override.yml \
+  up -d --force-recreate ${s.svc}
+
+# ---- CLEANUP ----
+rm -f docker-compose.override.yml
+
+echo " ${s.svc} deployed successfully"
+EOF
+"""
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /* =====================================================
+       POST ACTIONS
+    ===================================================== */
+    post {
+
+        /* ---------- SUCCESS ---------- */
+        success {
+            script {
+                if (fileExists("${TEMPLATE_DIR}/Sanordo-Deploy-Success.html")) {
+
+                    def body = readFile("${TEMPLATE_DIR}/Sanordo-Deploy-Success.html")
+                        .replace('${VERSION}', params.VERSION)
+                        .replace('${ADMIN}',  params.ADMIN_CHANGED  ? 'UPDATED' : 'NO CHANGE')
+                        .replace('${CLIENT}', params.CLIENT_CHANGED ? 'UPDATED' : 'NO CHANGE')
+                        .replace('${NODE}',   params.NODE_CHANGED   ? 'UPDATED' : 'NO CHANGE')
+                        .replace('${SERVER}', params.SERVER_CHANGED ? 'UPDATED' : 'NO CHANGE')
+
+                    mail(
+                        to: EMAIL,
+                        subject: " Sanordo LIVE Deploy Success (${params.VERSION})",
+                        body: body,
+                        mimeType: 'text/html'
+                    )
+                }
+            }
+        }
+
+        /* ---------- FAILURE ---------- */
+        failure {
+            mail(
+                to: EMAIL,
+                subject: " Sanordo LIVE Deploy Failed (${params.VERSION})",
+                body: "Deployment failed. Please check Jenkins console logs.",
+                mimeType: 'text/plain'
+            )
+        }
+    }
+}
