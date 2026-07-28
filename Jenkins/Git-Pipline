@@ -1,0 +1,221 @@
+pipeline {
+    agent any
+
+    environment {
+        BRANCH = "sumit"
+
+        GITDIR = "/var/lib/jenkins/workspace/ordo-Git"
+
+        ADMIN_DIR  = "/var/lib/jenkins/workspace/ordosan/sanordo-admin/ordo-admin"
+        CLIENT_DIR = "/var/lib/jenkins/workspace/ordosan/sanordo-client/ordo-client"
+        NODE_DIR   = "/var/lib/jenkins/workspace/ordosan/sanordo-node/ordo-node-server"
+        SERVER_DIR = "/var/lib/jenkins/workspace/ordosan/sanordo-server/ordo-server"
+
+        EMAIL        = "sumit.kumar@sansoftwares.com,vinod.kumar@sansoftwares.in,shweta.rathore@sansoftwares.in"
+        TEMPLATE_DIR = "/var/lib/jenkins/email-templates"
+    }
+
+    stages {
+
+        /* =====================================================
+           CLONE / FETCH REPOSITORIES
+        ===================================================== */
+        stage('Clone & Fetch Repositories') {
+            steps {
+                script {
+                    def GIT_USER = "sumit"
+                    def GIT_PASS = "Sumitkumar@1139"
+                    def safePass = URLEncoder.encode(GIT_PASS, "UTF-8")
+
+                    def repos = [
+                        [url: "http://192.168.1.16/vinod/sanordo-admin.git",  path: "${GITDIR}/sanordo-admin"],
+                        [url: "http://192.168.1.16/harish/sanordo-client.git", path: "${GITDIR}/sanordo-client"],
+                        [url: "http://192.168.1.16/vinod/sanordo-node.git",   path: "${GITDIR}/sanordo-node"],
+                        [url: "http://192.168.1.16/vinod/sanordo-server.git", path: "${GITDIR}/sanordo-server"]
+                    ]
+
+                    repos.each { r ->
+                        def repoUrl = r.url.replace(
+                            "http://",
+                            "http://${GIT_USER}:${safePass}@"
+                        )
+
+                        if (!fileExists(r.path)) {
+                            sh "git clone -b ${BRANCH} ${repoUrl} ${r.path}"
+                        } else {
+                            dir(r.path) {
+                                sh """
+                                    git checkout ${BRANCH} || git checkout -b ${BRANCH} origin/${BRANCH}
+                                    git fetch origin ${BRANCH}
+                                """
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /* =====================================================
+           DETECT CHANGES (NO RESET HERE)
+        ===================================================== */
+        stage('Detect Git Changes') {
+            steps {
+                script {
+
+                    env.TIMESTAMP = sh(
+                        script: "date +%d%b%y_%H%M",
+                        returnStdout: true
+                    ).trim()
+
+                    def detectChange = { repoPath ->
+                        dir(repoPath) {
+                            def localCommit = sh(
+                                script: "git rev-parse HEAD",
+                                returnStdout: true
+                            ).trim()
+
+                            def remoteCommit = sh(
+                                script: "git rev-parse origin/${BRANCH}",
+                                returnStdout: true
+                            ).trim()
+
+                            if (localCommit != remoteCommit) {
+                                echo "CHANGE DETECTED in ${repoPath}"
+                                return true
+                            } else {
+                                echo "NO CHANGE in ${repoPath}"
+                                return false
+                            }
+                        }
+                    }
+
+                    env.ADMIN_CHANGED  = detectChange("${GITDIR}/sanordo-admin").toString()
+                    env.CLIENT_CHANGED = detectChange("${GITDIR}/sanordo-client").toString()
+                    env.NODE_CHANGED   = detectChange("${GITDIR}/sanordo-node").toString()
+                    env.SERVER_CHANGED = detectChange("${GITDIR}/sanordo-server").toString()
+
+                    echo """
+                    ===============================
+                    CHANGE SUMMARY
+                    ===============================
+                    ADMIN_CHANGED=${env.ADMIN_CHANGED}
+                    CLIENT_CHANGED=${env.CLIENT_CHANGED}
+                    NODE_CHANGED=${env.NODE_CHANGED}
+                    SERVER_CHANGED=${env.SERVER_CHANGED}
+                    ===============================
+                    """
+                }
+            }
+        }
+
+        /* =====================================================
+           BACKUP & REPLACE (RESET ONLY HERE)
+        ===================================================== */
+        stage('Backup & Replace Code') {
+            when {
+                expression {
+                    env.ADMIN_CHANGED  == "true" ||
+                    env.CLIENT_CHANGED == "true" ||
+                    env.NODE_CHANGED   == "true" ||
+                    env.SERVER_CHANGED == "true"
+                }
+            }
+            steps {
+                script {
+
+                    if (env.ADMIN_CHANGED == "true") {
+                        dir("${GITDIR}/sanordo-admin") {
+                            sh "git reset --hard origin/${BRANCH}"
+                        }
+                        sh """
+                            mv ${ADMIN_DIR} ${ADMIN_DIR}-${env.TIMESTAMP} || true
+                            mkdir -p ${ADMIN_DIR}
+                            cp -r ${GITDIR}/sanordo-admin/* ${ADMIN_DIR}
+                        """
+                    }
+
+                    if (env.CLIENT_CHANGED == "true") {
+                        dir("${GITDIR}/sanordo-client") {
+                            sh "git reset --hard origin/${BRANCH}"
+                        }
+                        sh """
+                            mv ${CLIENT_DIR} ${CLIENT_DIR}-${env.TIMESTAMP} || true
+                            mkdir -p ${CLIENT_DIR}
+                            cp -r ${GITDIR}/sanordo-client/* ${CLIENT_DIR}
+                        """
+                    }
+
+                    if (env.NODE_CHANGED == "true") {
+                        dir("${GITDIR}/sanordo-node") {
+                            sh "git reset --hard origin/${BRANCH}"
+                        }
+                        sh """
+                            mv ${NODE_DIR} ${NODE_DIR}-${env.TIMESTAMP} || true
+                            cp -r ${GITDIR}/sanordo-node ${NODE_DIR}
+                        """
+                    }
+
+                    if (env.SERVER_CHANGED == "true") {
+                        dir("${GITDIR}/sanordo-server") {
+                            sh "git reset --hard origin/${BRANCH}"
+                        }
+                        sh """
+                            mv ${SERVER_DIR} ${SERVER_DIR}-${env.TIMESTAMP} || true
+                            cp -r ${GITDIR}/sanordo-server ${SERVER_DIR}
+                        """
+                    }
+                }
+            }
+        }
+
+        /* =====================================================
+           EMAIL NOTIFICATION
+        ===================================================== */
+        stage('Send Notification') {
+            steps {
+                script {
+                    def hasChanges =
+                        env.ADMIN_CHANGED  == "true" ||
+                        env.CLIENT_CHANGED == "true" ||
+                        env.NODE_CHANGED   == "true" ||
+                        env.SERVER_CHANGED == "true"
+
+                    def template = hasChanges
+                        ? "${TEMPLATE_DIR}/Git-Changes-Success.html"
+                        : "${TEMPLATE_DIR}/Git-No-Changes.html"
+
+                    mail(
+                        to: EMAIL,
+                        subject: "🔔 SANORDO Git Update - ${JOB_NAME} #${BUILD_NUMBER}",
+                        body: readFile(template),
+                        mimeType: 'text/html'
+                    )
+                }
+            }
+        }
+
+        /* =====================================================
+           TRIGGER NEXT PIPELINE
+        ===================================================== */
+        stage('Trigger Build Pipeline') {
+            when {
+                expression {
+                    env.ADMIN_CHANGED  == "true" ||
+                    env.CLIENT_CHANGED == "true" ||
+                    env.NODE_CHANGED   == "true" ||
+                    env.SERVER_CHANGED == "true"
+                }
+            }
+            steps {
+                build job: 'Sanordo-Build',
+                    parameters: [
+                        booleanParam(name: 'ADMIN_CHANGED',  value: env.ADMIN_CHANGED.toBoolean()),
+                        booleanParam(name: 'CLIENT_CHANGED', value: env.CLIENT_CHANGED.toBoolean()),
+                        booleanParam(name: 'NODE_CHANGED',   value: env.NODE_CHANGED.toBoolean()),
+                        booleanParam(name: 'SERVER_CHANGED', value: env.SERVER_CHANGED.toBoolean())
+                    ],
+                    wait: false
+            }
+        }
+    }
+}
