@@ -1,0 +1,176 @@
+pipeline {
+
+    agent any
+
+    environment {
+        WORKDIR      = "/var/lib/jenkins/workspace/ordosan"
+        REGISTRY     = "sxrdo"
+
+        DOCKER_USER  = "sansxx9"
+        DOCKER_PASS  = "Saxxsox23"
+
+        EMAIL        = "sumit.kumar@sansoftwares.com,vxxoftwares.in,shwetaxxansoftwares.in"
+        TEMPLATE_DIR = "/var/lib/jenkins/email-templates"
+
+        VERSION = "v${BUILD_NUMBER}"
+    }
+
+    parameters {
+        booleanParam(name: 'ADMIN_CHANGED',  defaultValue: false)
+        booleanParam(name: 'CLIENT_CHANGED', defaultValue: false)
+        booleanParam(name: 'NODE_CHANGED',   defaultValue: false)
+        booleanParam(name: 'SERVER_CHANGED', defaultValue: false)
+    }
+
+    stages {
+
+        stage('Build Images') {
+            steps {
+                dir("${WORKDIR}") {
+                    script {
+
+                        if (params.ADMIN_CHANGED) {
+                            sh "docker compose build sanordo-admin --no-cache"
+                        }
+
+                        if (params.CLIENT_CHANGED) {
+                            sh "docker compose build sanordo-client --no-cache"
+                        }
+
+                        if (params.NODE_CHANGED) {
+                            sh "docker compose build sanordo-node --no-cache"
+                        }
+
+                        if (params.SERVER_CHANGED) {
+                            sh "docker compose build sanordo-server --no-cache"
+                        }
+
+                    }
+                }
+            }
+        }
+
+
+        stage('Docker Login') {
+            steps {
+                sh """
+                echo '${DOCKER_PASS}' | docker login -u '${DOCKER_USER}' --password-stdin
+                """
+            }
+        }
+
+
+        stage('Tag & Push Images') {
+            steps {
+                script {
+
+                    def pushImage = { image ->
+
+                        sh """
+                        docker tag ${REGISTRY}:${image} ${REGISTRY}:${image}_${VERSION}
+                        docker push ${REGISTRY}:${image}_${VERSION}
+                        """
+
+                    }
+
+                    if (params.ADMIN_CHANGED)  { pushImage("adminserver") }
+                    if (params.CLIENT_CHANGED) { pushImage("clientserver") }
+                    if (params.NODE_CHANGED)   { pushImage("nodeserver") }
+                    if (params.SERVER_CHANGED) { pushImage("sanordoserver") }
+
+                }
+            }
+        }
+
+
+        stage('Send Build Success Mail') {
+            steps {
+                script {
+
+                    def template = readFile("${TEMPLATE_DIR}/sanordo-Build-successfully.html")
+                        .replace('${ADMIN}',  params.ADMIN_CHANGED  ? 'UPDATED' : 'NO CHANGE')
+                        .replace('${CLIENT}', params.CLIENT_CHANGED ? 'UPDATED' : 'NO CHANGE')
+                        .replace('${NODE}',   params.NODE_CHANGED   ? 'UPDATED' : 'NO CHANGE')
+                        .replace('${SERVER}', params.SERVER_CHANGED ? 'UPDATED' : 'NO CHANGE')
+                        .replace('${VERSION}', VERSION)
+
+                    mail(
+                        to: EMAIL,
+                        subject: "Sanordo Build Success (${VERSION})",
+                        body: template,
+                        mimeType: 'text/html'
+                    )
+
+                }
+            }
+        }
+
+
+        stage('Trigger Deploy Pipeline') {
+            steps {
+
+                build job: 'Sanordo-Deploy',
+                    parameters: [
+                        string(name: 'VERSION', value: VERSION),
+                        booleanParam(name: 'ADMIN_CHANGED',  value: params.ADMIN_CHANGED),
+                        booleanParam(name: 'CLIENT_CHANGED', value: params.CLIENT_CHANGED),
+                        booleanParam(name: 'NODE_CHANGED',   value: params.NODE_CHANGED),
+                        booleanParam(name: 'SERVER_CHANGED', value: params.SERVER_CHANGED)
+                    ],
+                    wait: false
+
+            }
+        }
+
+
+        stage('Prepare Redeploy Info') {
+            steps {
+                script {
+
+                    def redeploy = []
+
+                    if (params.ADMIN_CHANGED)  { redeploy.add("Admin") }
+                    if (params.CLIENT_CHANGED) { redeploy.add("Client") }
+                    if (params.NODE_CHANGED)   { redeploy.add("Node") }
+                    if (params.SERVER_CHANGED) { redeploy.add("Server") }
+
+                    env.REDEPLOYED = redeploy ? redeploy.join(", ") : "No Component"
+
+                    echo "Redeployed Services: ${env.REDEPLOYED}"
+
+                }
+            }
+        }
+
+
+        stage('Send Manager Approval Mail') {
+            steps {
+                script {
+
+                    def template = readFile("${TEMPLATE_DIR}/Sanordo-ManagerApproval.html")
+                        .replace('${VERSION}', VERSION)
+                        .replace('${REDEPLOYED}', env.REDEPLOYED)
+
+                    mail(
+                        to: EMAIL,
+                        subject: "Manager Approval Required – Sanordo (${VERSION})",
+                        body: template,
+                        mimeType: 'text/html'
+                    )
+
+                }
+            }
+        }
+
+    }
+
+
+    post {
+        failure {
+            mail to: EMAIL,
+                 subject: "❌ Sanordo Build Failed (#${BUILD_NUMBER})",
+                 body: "Build failed. Please check Jenkins console logs.",
+                 mimeType: 'text/plain'
+        }
+    }
+}
