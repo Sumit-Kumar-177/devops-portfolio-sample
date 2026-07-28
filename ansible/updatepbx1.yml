@@ -1,7 +1,7 @@
---- # This is used to upgrade sanippbx
+--- # This is used to upgrade IPPBX
 
-- name: upgrade sanippbx Relax!! It take 20 min.
-  hosts: Test
+- name: upgrade sanippbx Relax!! It take some time.
+  hosts: v-connect
   user: root
   become: yes
   connection: ssh
@@ -9,7 +9,7 @@
   tasks:
   - name: Download sanippbx_4.0
     get_url:
-      url: "http://update.sansoftwares.com/SANIPPBX_Setup/SanIPPBX_v.4.0.zip"
+      url: "http://updatexxxxx.com/SANIPPBX_Setup/SanIPPBX_v.4.0.zip"
       dest: "/var/www/html/"
       mode: '0644'
 
@@ -67,5 +67,5 @@
     replace:
         path: /var/www/html/pbxadmin/application/config/database.php
         regexp: "'password' => 'sandbpass'"
-        replace: "'password' => '*1Sansoftwares#'"
+        replace: "'password' => '*1S***es#'"
     when: php_file.stat.exists
