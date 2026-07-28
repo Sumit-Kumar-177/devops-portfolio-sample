@@ -1,1 +1,49 @@
+#  Prometheus & Grafana Monitoring
 
+This project demonstrates how I monitor Linux servers and applications using **Prometheus**, **Grafana**, and **Alertmanager**.
+
+## Features
+
+- Monitor Linux servers using **Node Exporter**
+- Monitor **HAProxy** and **Asterisk** metrics
+- Store **15 days** of performance metrics
+- Configure email alerts using **Alertmanager**
+- Build custom Grafana dashboards for infrastructure monitoring
+
+## Configuration
+
+### prometheus.yml
+- Configures Prometheus scrape jobs
+- Collects metrics from Linux servers and exporters
+
+### node_alert.yml
+Contains alert rules for:
+- High CPU Usage
+- High Memory Usage
+- High Disk Usage
+- Server Down
+- Other infrastructure alerts
+
+### alertmanager.yml
+Routes alerts to the appropriate team.
+
+**Examples:**
+- MySQL Alerts → Database Team
+- Server Health Alerts → IT Team
+- Critical Alerts → DevOps Team
+
+## Dashboards
+
+- **Node Exporter Dashboard** – Customized from the community dashboard.
+- **HAProxy Dashboard** – Customized for monitoring load balancer performance.
+- **Asterisk Dashboard** – Designed completely from scratch.
+
+## Screenshots
+
+Sample screenshots of:
+- Prometheus Targets
+- Alert Rules
+- Grafana Dashboards
+- Alert Emails
+- HAProxy Monitoring
+- Asterisk Monitoring
