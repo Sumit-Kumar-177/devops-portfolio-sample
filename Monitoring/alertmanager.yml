@@ -1,0 +1,44 @@
+global:
+  smtp_smarthost: 'smtp.office365.com:587'
+  smtp_from: 'noreply@sansoftwares.com'
+  smtp_auth_username: 'noreply@sansoftwares.com'
+  smtp_auth_password: 'tsdjfvmpgvdxtfnl'
+  smtp_require_tls: true
+
+templates:
+  - '/etc/alertmanager/templates/email_warning_template.tmpl'
+  - '/etc/alertmanager/templates/email_critical_template.tmpl'
+  - '/etc/alertmanager/templates/email_resolved_template.tmpl'
+
+route:
+  receiver: 'email-alerts'
+  group_by: ['alertname']
+  group_wait: 3s
+  group_interval: 1m
+  repeat_interval: 30m
+
+receivers:
+  - name: 'email-alerts'
+    email_configs:
+      - to: 'sumit.kumar@sansoftwares.com,tarun.verma@sansoftwares.com,deepak.kumar@sansoftwares.com,monu@sansoftwares.com,sonam.yadav@sansoftwares.com,gopal@sansoftwares.com,jagwant@sansoftwares.com,anuj@sansoftwares.com'
+        send_resolved: true
+        headers:
+          Subject: '{{ .Status | toUpper }}: {{ .CommonLabels.alertname }} on {{ .CommonLabels.nodename }}'
+        html: >
+          {{ if eq .Status "firing" }}
+            {{ if eq .CommonLabels.severity "critical" }}
+              {{ template "email_critical_html" . }}
+            {{ else }}
+              {{ template "email_warning_html" . }}
+            {{ end }}
+          {{ else }}
+            {{ template "email_resolved_html" . }}
+          {{ end }}
+
+  - name: 'mysql-primary-alert'
+    email_configs:
+      - to: 'sumit.kumar@sansoftwares.com'
+        send_resolved: true
+        headers:
+          Subject: 'ALERT: MySQL Primary Changed'
+        html: '{{ template "email_mysql_primary_html" . }}'       

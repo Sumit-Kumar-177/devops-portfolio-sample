@@ -1,0 +1,227 @@
+# ===========================
+# Global Configuration
+# ===========================
+global:
+  scrape_interval: 15s
+
+# ===========================
+# Alertmanager Configuration
+# ===========================
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'localhost:9093'  # Alertmanager host
+
+# ===========================
+# Alert Rules
+# ===========================
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+# ===========================
+# Scrape Configurations
+# ===========================
+
+scrape_configs:
+
+  # ===========================
+  # DC1: Triple-Play
+  # ===========================
+
+  # --- Node Exporter ---
+  - job_name: 'node_exporter_Triple-Play'
+    scrape_interval: 1s
+    static_configs:
+      - targets:
+          - '150.242.73.28:9100'
+          - '150.242.73.250:9100'
+          - '150.242.73.252:9100'
+          - '150.242.73.35:9100'
+          - '150.242.73.251:9100'
+          - '150.242.73.138:9100'   
+          - '150.242.73.13:9100'
+          - '150.242.73.11:9100'
+          - '150.242.73.14:9100'
+          - '150.242.73.132:9100'
+          - '150.242.73.132:9111'
+          - '150.242.73.132:9112'  
+          - '150.242.74.142:9100'
+          - '150.242.73.30:9100'
+          - '150.242.73.243:9100'
+          - '150.242.74.141:9100'
+          - '150.242.73.26:9100'
+          - '150.242.73.27:9100'
+          - '150.242.73.25:9100'  
+          - '150.242.73.238:9100'
+          - '150.242.73.36:9100'
+          - '150.242.73.18:9100'
+        labels:
+          dc: 'Triple-Play'
+          service: 'node'
+
+  # --- MySQL Exporter ---
+  - job_name: 'mysql_exporter_Triple-Play'
+    scrape_interval: 25s
+    scrape_timeout: 15s  
+    static_configs:
+      - targets:
+          - '150.242.73.250:9104'
+          - '150.242.73.26:9104'
+          - '150.242.73.27:9104'
+          - '150.242.73.13:9104'
+          - '150.242.73.11:9104'
+          - '150.242.73.14:9104'
+          - '150.241.247.19:9104'
+          - '150.242.74.142:9104'
+          - '150.242.73.30:9104'
+          - '150.242.73.243:9104'  
+        labels:
+          dc: 'Triple-Play'
+          service: 'mysql'
+
+  # --- Asterisk Exporter ---
+  - job_name: 'asterisk_exporter_Triple-Play'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - '150.241.247.19:9700'
+        labels:
+          dc: 'Triple-Play'
+          service: 'asterisk'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+
+     # --- PM2 Exporter ---
+     #  - job_name: 'pm2_exporter_Triple-Play'
+     #scrape_interval: 15s
+     #static_configs:
+     #  - targets:
+     #     - '150.242.73.28:9209'
+     #   labels:
+     #     dc: 'Triple-Play'
+     #     service: 'pm2'
+     # relabel_configs:
+     # - source_labels: [__address__]
+     #   target_label: instance
+       
+
+  # ===========================
+  # DC2: V-Connect
+  # ===========================
+
+  # --- Node Exporter ---
+  - job_name: 'node_exporter_V-Connect'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - '163.223.54.14:9100'
+          - '163.223.54.12:9100'
+          - '163.223.54.20:9100'
+          - '163.223.54.24:9100'
+          - '163.223.54.11:9100'
+          - '163.223.54.16:9100'
+          - '163.223.54.17:9100'
+          - '163.223.54.18:9100'
+          - '163.223.54.21:9100'
+          - '206.1.34.153:9100'  
+        labels:
+          dc: 'V-Connect'
+          service: 'node'
+
+
+  # ===========================
+  # DC4: Office-Servers
+  # ===========================
+
+  # --- Node Exporter ---
+  - job_name: 'node_exporter_Office'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - '192.168.1.63:9100'
+          - '192.168.1.61:9100'
+          - '192.168.1.62:9100'
+          - '192.168.1.69:9100' 
+          - '192.168.1.37:9100'  
+        labels:
+          dc: 'Office-Servers'
+          service: 'node'
+ 
+
+  # --- MySQL Exporter ---
+  - job_name: 'mysql_exporter_V-Connect'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - '163.223.54.14:9104'
+          - '163.223.54.12:9104'
+          - '163.223.54.20:9104'
+          - '163.223.54.11:9104'
+          - '163.223.54.16:9104'
+          - '163.223.54.24:9104'   
+          - '163.223.54.17:9104' 
+          - '163.223.54.18:9104'
+          - '163.223.54.21:9104'
+          - '206.1.34.153:9104'  
+        labels:
+          dc: 'V-Connect'
+          service: 'mysql'
+
+  # --- Asterisk Exporter ---
+  - job_name: 'asterisk_exporter_V-Connect'
+    scrape_interval: 60s
+    static_configs:
+      - targets:
+          - '163.223.54.20:9700'
+        labels:
+          dc: 'V-Connect'
+          service: 'asterisk'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+
+  # ===========================
+  # DC3: Microhost
+  # ===========================
+
+  # --- Node Exporter ---
+  - job_name: 'node_exporter_Microhost'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - '103.189.89.149:9100'
+          - '150.241.246.101:9100'
+          - '150.241.247.19:9100'
+        labels:
+          dc: 'Microhost'
+          service: 'node'
+
+  # --- MySQL Exporter ---
+  - job_name: 'mysql_exporter_Microhost'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - '103.189.89.149:9104'
+          - '150.241.246.101:9104'  
+        labels:
+          dc: 'Microhost'
+          service: 'mysql'
+
+  # --- Asterisk Exporter ---
+  - job_name: 'asterisk_exporter_Microhost'
+    scrape_interval: 60s
+    scrape_timeout: 50s
+    scheme: http
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - '103.189.89.149:9700'
+        labels:
+          dc: 'Microhost'
+          service: 'asterisk'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+          

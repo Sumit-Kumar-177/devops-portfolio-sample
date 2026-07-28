@@ -1,0 +1,285 @@
+groups:
+- name: node-alerts
+  rules:
+
+  # =========================================================
+  # 1. CPU
+  # =========================================================
+  - alert: NodeCPUHigh
+    expr: |
+      (
+        100 - (avg by(instance, dc) (irate(node_cpu_seconds_total{mode="idle"}[2m])) * 100)
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info
+      > 70
+    for: 4m
+    labels:
+      severity: warning
+    annotations:
+      summary: 'CPU usage is  High on {{ $labels.nodename }} ({{ $labels.instance }})'
+      description: 'CPU usage is above 70% Kindly use top, htop to check server load '
+
+  - alert: NodeCPUCritical
+    expr: |
+      (
+        100 - (avg by(instance, dc) (irate(node_cpu_seconds_total{mode="idle"}[2m])) * 100)
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info
+      > 80
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'CPU usage is CRITICAL on {{ $labels.nodename }} ({{ $labels.instance }})'
+      description: 'CPU usage is  above 80% Kindly use top, htop to check server load'
+
+  # =========================================================
+  # 2. ROOT 70%
+  # =========================================================
+  - alert: RootDiskUsageHigh
+    expr: |
+      (
+        (
+          node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+        -
+          node_filesystem_free_bytes{mountpoint="/",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+        )
+        /
+        node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info
+      > 0.70
+    for: 4m
+    labels:
+      severity: warning
+    annotations:
+      summary: 'Root Space is  high on {{ $labels.nodename }} ({{ $labels.instance }})'
+      description: 'Root Space is above 70% kindly check and remove unnecessary data from /root'
+      
+
+  # =========================================================
+  # 3. ROOT 85%
+  # =========================================================
+  - alert: RootDiskUsageCritical
+    expr: |
+      (
+        (
+          node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+        -
+          node_filesystem_free_bytes{mountpoint="/",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+        )
+        /
+        node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info
+      > 0.85
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'ROOT Space is  CRITICAL on {{ $labels.nodename }} ({{ $labels.instance }})'
+      description: 'Root Space is above 80% kindly check and remove unnecessary data from /root'
+
+  # =========================================================
+  # 4. VAR 75%
+  # =========================================================
+  - alert: VarDiskUsageHigh
+    expr: |
+      (
+        (
+          sum by(instance, dc)(
+            node_filesystem_size_bytes{mountpoint=~"^/var($|/.*)",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+          )
+          -
+          sum by(instance, dc)(
+            node_filesystem_free_bytes{mountpoint=~"^/var($|/.*)",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+          )
+        )
+        /
+        sum by(instance, dc)(
+          node_filesystem_size_bytes{mountpoint=~"^/var($|/.*)",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+        )
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info
+      > 0.75
+    for: 4m
+    labels:
+      severity: warning
+    annotations:
+      summary: 'VAR Space is  High on {{ $labels.nodename }} ({{ $labels.instance }})'
+      description: 'Var Space is above 75% kindly check and remove unnecessary data from /var'
+
+  # =========================================================
+  # 5. VAR 85%
+  # =========================================================
+  - alert: VarDiskUsageCritical85
+    expr: |
+      (
+        (
+          sum by(instance, dc)(
+            node_filesystem_size_bytes{mountpoint=~"^/var($|/.*)",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+          )
+          -
+          sum by(instance, dc)(
+            node_filesystem_free_bytes{mountpoint=~"^/var($|/.*)",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+          )
+        )
+        /
+        sum by(instance, dc)(
+          node_filesystem_size_bytes{mountpoint=~"^/var($|/.*)",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+        )
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info
+      > 0.85
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'VAR Space is  CRITICAL on {{ $labels.nodename }} ({{ $labels.instance }})'
+      description: 'Var Space is above 85% kindly check and remove unnecessary data from /var'
+
+  # =========================================================
+  # 6. VAR 95%
+  # =========================================================
+  - alert: VarDiskUsageCritical95
+    expr: |
+      (
+        (
+          sum by(instance, dc)(
+            node_filesystem_size_bytes{mountpoint=~"^/var($|/.*)",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+          )
+          -
+          sum by(instance, dc)(
+            node_filesystem_free_bytes{mountpoint=~"^/var($|/.*)",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+          )
+        )
+        /
+        sum by(instance, dc)(
+          node_filesystem_size_bytes{mountpoint=~"^/var($|/.*)",fstype!~"tmpfs|overlay|nsfs|squashfs|aufs|rootfs",device=~"/dev/.*"}
+        )
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info
+      > 0.95
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'VAR Space is  FULL on {{ $labels.nodename }} ({{ $labels.instance }})'
+      description: 'VAR Space is above 95% kindly check and remove unnecessary data from /var'
+
+  # =========================================================
+  # 7. ASTERISK SIP PEER DOWN
+  # =========================================================
+  - alert: AsteriskSIPTrunkDown
+    expr: |
+      asterisk_endpoints_state{id=~"10.*",status="UNREACHABLE"}
+      * on(instance) group_left(nodename)
+        node_uname_info
+    for: 4m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'SIP Trunk {{ $labels.resource }} is DOWN on {{ $labels.nodename }}'
+      description: 'Kindly check Sip is down on server'
+
+  # =========================================================
+  # 8. NODE DOWN
+  # =========================================================
+  - alert: NodeDown
+    expr: |
+      (up{job=~"node_exporter_.*"} == 0)
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'SERVER is DOWN {{ $labels.nodename }} ({{ $labels.instance }})'
+      description: 'Node exporter not reachable'
+
+  # =========================================================
+  # 9. TIME DRIFT
+  # =========================================================
+  - alert: ServerTimeChanged
+    expr: |
+      abs(node_time_seconds - time())
+      * on(instance) group_left(nodename)
+        node_uname_info
+      > 300
+    for: 4m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'TIME DRIFT on {{ $labels.nodename }}'
+      description: 'Time has been changed on Server Kindly check'
+
+  # =========================================================
+  # 10. RAM
+  # =========================================================
+  - alert: NodeRAMUsageHigh
+    expr: |
+      (
+        (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+        / node_memory_MemTotal_bytes
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info
+      > 0.85
+    for: 4m
+    labels:
+      severity: warning
+    annotations:
+      summary: 'RAM utlization is High on {{ $labels.nodename }}'
+      description: 'RAM utlization is cross 85% on server Kindly check'
+
+  - alert: NodeRAMUsageCritical
+    expr: |
+      (
+        (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+        / node_memory_MemTotal_bytes
+      )
+      * on(instance) group_left(nodename)
+        node_uname_info
+      > 0.90
+    for: 4m
+    labels:
+      severity: critical
+    annotations:
+      summary: 'RAM utlization is CRITICAL on {{ $labels.nodename }}'
+      description: 'RAM utlization is cross 95% on server Kindly check'
+
+ ## ========================================================================
+ #  11. Master-Mysql Cloud
+ #  ========================================================================
+   
+  - alert: CenterlizedSQLPrimarySwitch
+    expr: proxysql_primary{ip="192.168.61.165"} == 0
+    for: 10s
+    labels:
+      severity: critical
+    annotations:
+      summary: "MySQL Primary Changed"
+      old: "192.168.61.165"
+      new: '{{ with query "proxysql_primary == 1" }}{{ range . }}{{ .Labels.ip }}{{ end }}{{ end }}'
+      secondary: '{{ with query "proxysql_primary == 0" }}{{ range . }}{{ if ne .Labels.ip "192.168.61.165" }}{{ .Labels.ip }} {{ end }}{{ end }}{{ end }}'
+
+## ========================================================================
+ #  11. Master-Mysql Local
+ #  ========================================================================
+
+  - alert: Centerlized-Local-SQL-Primary-Switch
+    expr: proxysql_primary{ip="192.168.1.61"} == 0
+    for: 10s
+    labels:
+      severity: critical
+    annotations:
+      summary: "MySQL Primary Changed"
+      old: "192.168.1.61"
+      new: '{{ with query "proxysql_primary == 1" }}{{ range . }}{{ .Labels.ip }}{{ end }}{{ end }}'
+      secondary: '{{ with query "proxysql_primary == 0" }}{{ range . }}{{ if ne .Labels.ip "192.168.1.61" }}{{ .Labels.ip }} {{ end }}{{ end }}{{ end }}'
+        
