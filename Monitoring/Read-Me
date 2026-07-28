@@ -42,8 +42,10 @@ Routes alerts to the appropriate team.
 
 Sample screenshots of:
 - Prometheus Targets
+
 - Alert Rules
 - Grafana Dashboards
+https://snapshots.raintank.io/dashboard/snapshot/xLJOzYaMifc0BajXy9ETPlXVVEJrUVtW
 - Alert Emails
 - HAProxy Monitoring
 - Asterisk Monitoring
