@@ -1,8 +1,8 @@
 global:
-  smtp_smarthost: 'smtp.office365.com:587'
-  smtp_from: 'noreply@sansoftwares.com'
-  smtp_auth_username: 'noreply@sansoftwares.com'
-  smtp_auth_password: 'tsdjfvmpgvdxtfnl'
+  smtp_smarthost: 'smtp.xxm:5x7'
+  smtp_from: 'norexxxxxtwares.com'
+  smtp_auth_username: 'norepxxxx.com'
+  smtp_auth_password: 'tsxxxxtfnl'
   smtp_require_tls: true
 
 templates:
@@ -20,7 +20,7 @@ route:
 receivers:
   - name: 'email-alerts'
     email_configs:
-      - to: 'sumit.kumar@sansoftwares.com,tarun.verma@sansoftwares.com,deepak.kumar@sansoftwares.com,monu@sansoftwares.com,sonam.yadav@sansoftwares.com,gopal@sansoftwares.com,jagwant@sansoftwares.com,anuj@sansoftwares.com'
+      - to: 'sumit.kumar@sansoftwares.com,txxxxes.com,deepak.kxxs.com,monu@sansoxxom,sonxxres.com,gxxftwares.com,jaxxsoftwares.com,anuxxftwares.com'
         send_resolved: true
         headers:
           Subject: '{{ .Status | toUpper }}: {{ .CommonLabels.alertname }} on {{ .CommonLabels.nodename }}'
@@ -37,7 +37,7 @@ receivers:
 
   - name: 'mysql-primary-alert'
     email_configs:
-      - to: 'sumit.kumar@sansoftwares.com'
+      - to: 'suxxansoftwares.com'
         send_resolved: true
         headers:
           Subject: 'ALERT: MySQL Primary Changed'
