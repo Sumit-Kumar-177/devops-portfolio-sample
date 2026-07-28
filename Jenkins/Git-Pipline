@@ -11,7 +11,7 @@ pipeline {
         NODE_DIR   = "/var/lib/jenkins/workspace/ordosan/sanordo-node/ordo-node-server"
         SERVER_DIR = "/var/lib/jenkins/workspace/ordosan/sanordo-server/ordo-server"
 
-        EMAIL        = "sumit.kumar@sansoftwares.com,vinod.kumar@sansoftwares.in,shweta.rathore@sansoftwares.in"
+        EMAIL        = "sumit.kumar@sansoftwares.com,vinxxares.in,shwxxxsoftwares.in"
         TEMPLATE_DIR = "/var/lib/jenkins/email-templates"
     }
 
@@ -186,7 +186,7 @@ pipeline {
 
                     mail(
                         to: EMAIL,
-                        subject: "🔔 SANORDO Git Update - ${JOB_NAME} #${BUILD_NUMBER}",
+                        subject: " SANORDO Git Update - ${JOB_NAME} #${BUILD_NUMBER}",
                         body: readFile(template),
                         mimeType: 'text/html'
                     )
