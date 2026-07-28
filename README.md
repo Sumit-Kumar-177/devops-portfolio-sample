@@ -5,15 +5,15 @@ management, and monitoring — the same core stack used in production environmen
 rebuilt here as a public, non-proprietary example.
 
 ## What this shows
-- **Custom Docker image built from scratch** (`Dockerfile`) — PHP + Apache stack
-- **Jenkins CI/CD pipeline** (`Jenkinsfile`) — build, health-check, manual approval, deploy
+- **Custom Docker image built from scratch** (`Dockerfile`) — PHP + Apache + Node
+- **Jenkins CI/CD pipeline** (`Jenkinsfile`) — Git-clone, build, Docker-image, manual approval, deploy
 - **Ansible playbook** (`ansible/playbook.yml`) — automated server provisioning and deployment
-- **Monitoring stack** (`monitoring/docker-compose.yml`) — Prometheus + Grafana
+- **Monitoring stack** (`monitoring/prometheus.yml`) — Prometheus + Grafana
 
 ## Architecture
 
 ```
-GitHub push -> Jenkins pipeline -> Docker build -> health check -> approval -> deploy
+GitHub push -> Jenkins pipeline -> Docker build -> Docker-Image -> approval -> deploy
                                                             |
                                                     Prometheus scrapes metrics
                                                             |
@@ -22,20 +22,17 @@ GitHub push -> Jenkins pipeline -> Docker build -> health check -> approval -> d
 
 ## How to run it locally
 
-**1. Build and run the app container**
-```bash
-docker build -t devops-portfolio-demo .
-docker run -d -p 8080:80 devops-portfolio-demo
-# visit http://localhost:8080
-```
-
-**2. Run the monitoring stack**
-```bash
-cd monitoring
-docker-compose up -d
-# Prometheus: http://localhost:9090
-# Grafana:    http://localhost:3000  (admin/admin)
-```
+**1. Build and run the app container via docker-compose.yml**
+version: '3.9'
+services:
+  backend_client:
+    build: ./bot_app_backend/backend_client
+    container_name: backend_client
+    ports:
+      - "85:85"
+      - "445:445"
+    restart: always
+``
 
 **3. Provision with Ansible (against a target VM)**
 ```bash
@@ -53,4 +50,3 @@ Docker · Jenkins · Ansible · Prometheus · Grafana · Apache · PHP
 
 ## Author
 Sumit Kumar — DevOps Engineer
-[LinkedIn](#) · [Email](mailto:syjhagrolia99@gmail.com)
