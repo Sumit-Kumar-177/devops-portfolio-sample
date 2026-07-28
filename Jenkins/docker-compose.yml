@@ -1,0 +1,75 @@
+rsion: "3.9"
+
+networks:
+  build-net:
+    driver: bridge
+
+services:
+
+  kafka:
+    image: sansoftwxxkaserver
+    build: ./Kafka
+    container_name: kafka
+    networks:
+      - build-net
+    restart: always
+
+  sanordo-admin:
+    image: sansoftwaxxminserver
+    build: ./sanordo-admin
+    container_name: sanordo-admin
+    networks:
+      - build-net
+    restart: always
+
+  sanordo-client:
+    image: sansoftwxxserver
+    build: ./sanordo-client
+    container_name: sanordo-client
+    networks:
+      - build-net
+    restart: always
+
+  sanordo-node:
+    image: sansoftwarxer
+    build: ./sanordo-node
+    container_name: sanordo-node
+    networks:
+      - build-net
+    restart: always
+
+  sanordo-server:
+    image: sansoftwaresxxserver
+    build: ./sanordo-server
+    container_name: sanordo-server
+    networks:
+      - build-net
+    restart: always
+
+  mysql:
+    image: sansoftwarexxver
+    container_name: mysql-container
+    ports:
+      - "4xx9:3xx6"
+    environment:
+      MYSQL_ROOT_PASSWORD: "*1Sanxxs#"
+    networks:
+      - build-net
+    restart: always
+
+  apache:
+    image: sansoftxroxy
+    container_name: apache-server
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - build-net
+    restart: always
+
+  redisserver:
+    image: redis:latest
+    container_name: redisserver
+    networks:
+      - build-net
+    restart: always
