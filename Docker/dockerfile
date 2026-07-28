@@ -33,20 +33,20 @@ RUN echo "ServerName localhost" >> /etc/httpd/conf/httpd.conf
 # Change port to 8083
 RUN sed -i 's/Listen 80/Listen 8083/' /etc/httpd/conf/httpd.conf
 
-# 🔥 FIX 1: Change DocumentRoot (IMPORTANT)
+# change DocumentRoot (IMPORTANT)
 RUN sed -i 's|DocumentRoot "/var/www/html"|DocumentRoot "/var/www/html/admincrm"|' /etc/httpd/conf/httpd.conf
 
-# 🔥 FIX 2: Comment duplicate Directory block
+#  Comment duplicate Directory block
 RUN sed -i '/<Directory "\/var\/www\/html\/admincrm">/,/<\/Directory>/ s/^/#/' /etc/httpd/conf/httpd.conf
 
-# 🔥 FIX 3: Add CLEAN Directory block (single source of truth)
+# Add  Directory block )
 RUN echo '<Directory "/var/www/html/admincrm">' >> /etc/httpd/conf/httpd.conf && \
     echo '    Options Indexes FollowSymLinks' >> /etc/httpd/conf/httpd.conf && \
     echo '    AllowOverride All' >> /etc/httpd/conf/httpd.conf && \
     echo '    Require all granted' >> /etc/httpd/conf/httpd.conf && \
     echo '</Directory>' >> /etc/httpd/conf/httpd.conf
 
-# Enable prefork MPM (required for mod_php)
+# Enable prefork MPM 
 RUN sed -i 's/^LoadModule mpm_event_module/#LoadModule mpm_event_module/' /etc/httpd/conf.modules.d/00-mpm.conf && \
     sed -i 's/^#LoadModule mpm_prefork_module/LoadModule mpm_prefork_module/' /etc/httpd/conf.modules.d/00-mpm.conf
 
