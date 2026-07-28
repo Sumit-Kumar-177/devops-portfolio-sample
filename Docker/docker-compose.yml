@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+
+  admin:
+    image: sansoftwarespvtltd/sanccs:Admin
+    build:
+      context: ./Admin-crm
+      dockerfile: Dockerfile
+    container_name: admin-server
+    network_mode: host
+    restart: always
+
+  agent:
+    image: sansoftwarespvtltd/sanccs:Agent
+    build:
+      context: ./Agent-crm
+      dockerfile: Dockerfile
+    container_name: agent-server
+    network_mode: host
+    restart: always
+
+  apache:
+    image: sansoftwarespvtltd/sanccs:apache
+    container_name: apache-proxy
+    network_mode: host
+    restart: always
+
+  pbxserver:
+    image: sansoftwarespvtltd/sanccs:pbxserver
+    container_name: pbxserver
+    network_mode: host
+    restart: always
